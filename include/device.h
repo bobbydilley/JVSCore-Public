@@ -10,8 +10,7 @@
 
 int initDevice(char *devicePath);
 int closeDevice();
-int readBytes(char *buffer, int amount);
-int writeBytes(char *buffer, int amount);
-int drain();
+int readBytes(unsigned char *buffer, int amount);
+int writeBytes(unsigned char *buffer, int amount);
 
 #endif // DEVICE_H_

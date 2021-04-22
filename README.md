@@ -6,6 +6,7 @@ JVSCore is a user space driver for using JVS I/O boards with Linux. It requires 
 
 The JVSCore device driver currently supports the following features of a JVS I/O:
 
+- Coins
 - Switches
 - Analogue Inputs
 
@@ -15,13 +16,10 @@ Installation is done from the git repository as follows:
 
 ```
 sudo apt install build-essential cmake git
-git clone https://github.com/bobbydilley/JVSCore-Public
-cd JVSCore-Public
-mkdir build && cd build
-cmake ..
-cmake --build .
-cpack
-sudo dpkg --install *.deb
+git clone https://github.com/bobbydilley/JVSCore
+cd JVSCore
+make
+sudo make install
 ```
 
 ## Cable
@@ -35,10 +33,8 @@ https://www.youtube.com/watch?v=kqXEYtvGzno
 |---|---|
 |B-|DATA- (White)|
 |A+|DATA+ (Green)|
-|5-12V|VCC (Red)|
+|Not Required|VCC (Red)|
 |GND|GND (Black)|
-
-> I'm not 100% sure if the 5-12V line is giving that, or will just take that - so please be careful what you plug in!
 
 ## Command Line Usage
 
@@ -48,7 +44,7 @@ To start JVSCore in the terminal to view debug messages, you can start it by typ
 sudo jvscore
 ```
 
-The RS485 converter device path is set in `/etc/jvscore.conf`, with any other configuration values that may come in the future. If you only have one serial device plugged in, you shouldn't have to change it! The fuzz value can also be set in this config file. Fuzz is how much the analogue value has to change by before it is reported to the computer. This is useful if you've got super noisy pots!
+The RS485 converter device path is set in `/etc/jvscore.conf`, with any other configuration values that may come in the future. If you only have one serial device plugged in, you shouldn't have to change it! The fuzz value can also be set in this config file. Fuzz is how much the analogue value has to change by before it is reported to the computer. This is useful if you've got super noisy pots on your controllers!
 
 
 ## Systemd Service
@@ -70,7 +66,7 @@ sudo journalctl -u jvscore
 
 ## Adapters known to work
 
-- https://www.ebay.co.uk/itm/Industrial-USB-To-RS485-Converter-Upgrade-Protection-RS485-Converter/323744400265?ssPageName=STRK%3AMEBIDX%3AIT&_trksid=p2057872.m2749.l2649
+The best adapters are those with an FTDI chipset.
 
 ## Credits
 

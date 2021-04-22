@@ -5,7 +5,19 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  **/
 
-#include "jvscore.h"
+#include <stdio.h>
+#include <string.h>
+#include <linux/uinput.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <termios.h>
+#include <unistd.h>
+#include <time.h>
+#include <stdarg.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <math.h>
+
 #include "jvs.h"
 #include "config.h"
 #include "input.h"
@@ -15,7 +27,7 @@ int main()
 {
     printf("JVSCore Device Driver Version %s\n", PROJECT_VER);
 
-    char *configFilePath = "/usr/etc/jvscore.conf";
+    char *configFilePath = "/etc/jvscore.conf";
 
     JVSConfig config = {0};
     if (!parseConfig(configFilePath, &config))
@@ -50,8 +62,10 @@ int main()
     }
 
     printf("Device Connected: %s\n", name);
-    printf("  Players: %d\n", capabilities.players);
-    printf("  Switches: %d\n", capabilities.switches);
+    if (capabilities.players > 0)
+        printf("  Players: %d\n", capabilities.players);
+    if (capabilities.switches > 0)
+        printf("  Switches Per Player: %d\n", capabilities.switches);
     if (capabilities.coins > 0)
         printf("  Coins: %d\n", capabilities.coins);
     if (capabilities.analogueInChannels > 0)
@@ -83,33 +97,43 @@ int main()
         return EXIT_FAILURE;
     }
 
-    div_t switchDiv = div(capabilities.switches, 8);
-    int switchBytes = switchDiv.quot + (switchDiv.rem ? 1 : 0);
+    sleep(1);
 
-    sleep(2);
+    unsigned char coins[capabilities.coins];
+    unsigned char switches[getSwitchBytesPerPlayer() * capabilities.players + 1];
+    int analogues[capabilities.analogueInChannels];
 
     int running = 1;
     while (running)
     {
-        /* Get and update the switches */
-        char switches[switchBytes * capabilities.players + 1];
-        usleep(50);
-        if (!getSwitches(switches, capabilities.players, switchBytes))
+        /* Request all supported functions from the JVS IO */
+        if (!getSupported(&capabilities, coins, switches, analogues))
         {
-            printf("Error getting switches, closing.\n");
-            break;
+            printf("Error: Failed to request from the JVS IO\n");
+            running = 0;
         }
-        updateSwitches(switches);
 
-        /* Get and update the analogue channels */
-        char analogues[2 * capabilities.analogueInChannels];
-        usleep(50);
-        if (!getAnalogue(analogues, capabilities.analogueInChannels))
+        /* See if we need to press any keys for a coin update */
+        for (int i = 0; i < capabilities.coins; i++)
         {
-            printf("Error getting analogues, closing.\n");
-            break;
+            if (coins[i] > 0)
+            {
+                emitCoinPress(i);
+                decreaseCoins(coins[i], (unsigned char)i + 1);
+            }
         }
-        updateAnalogues(analogues);
+
+        /* Update the switches */
+        if (capabilities.switches > 0)
+        {
+            updateSwitches(switches);
+        }
+
+        /* Update the analogue channels */
+        if (capabilities.analogueInChannels > 0)
+        {
+            updateAnalogues(analogues);
+        }
 
         /* Send the updates to the computer */
         sendUpdate();
@@ -117,5 +141,5 @@ int main()
 
     closeInput();
 
-    return 0;
+    return EXIT_FAILURE;
 }
